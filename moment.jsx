@@ -59,8 +59,8 @@ function FragmentBlock({ idx, title, lines, align }) {
       }}>({title})</div>
 
       <div style={{
-        fontFamily: SERIF, fontWeight: 300, fontSize: 14,
-        lineHeight: 1.55, color: FG_BODY,
+        fontFamily: SERIF, fontWeight: 300, fontSize: 24,
+        lineHeight: 1.75, color: FG_BODY,
         letterSpacing: '0.01em', textAlign, maxWidth: 480
       }}>
         {lines.map((line, i) => <div key={i}>{line}</div>)}
