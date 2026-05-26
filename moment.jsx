@@ -1,0 +1,393 @@
+// (moment) — production
+// Mobile-first ambient poetry experience.
+// IntersectionObserver fade-in, horizon migrates 18%→82% with each
+// fragment, generous pause sections between, silent loop through a
+// closing "(moment)" credits screen.
+
+// ─── motion constants (locked) ───────────────────────────────────────
+const FADE_MS = 1400;
+const PACE = { frag: 1.00, pause: 1.00 };
+
+// ─── tokens (from Figma) ─────────────────────────────────────────────
+const BG       = '#0E0E0E';
+const DESK     = '#191614';
+const FG       = 'rgba(232,230,226,0.88)';
+const FG_BODY  = 'rgba(232,230,226,0.92)';
+const FG_MUTED = 'rgba(232,230,226,0.42)';
+
+const SANS  = "'Manrope', 'Helvetica Neue', Helvetica, system-ui, sans-serif";
+const SERIF = "'Newsreader', 'Iowan Old Style', Georgia, serif";
+const MONO  = "'DM Mono', 'JetBrains Mono', ui-monospace, monospace";
+
+// ─── content ─────────────────────────────────────────────────────────
+const FRAGMENTS = [
+  { title: 'babylon',           align: 'left',   lines: ['This is where I am', 'here right now, for such a time', 'Steward and behold'] },
+  { title: 'tantalise',         align: 'left',   lines: ['Spring whiff in the wind', 'lush fruit appetizing; I\u2019m', 'again plunged and pruned.'] },
+  { title: 'sheep\u2019s daydreams', align: 'left', lines: ['By the tranquil brook', 'Lush grass freshly consumed,\u2013 sigh,', 'in my shepherd\u2019s lap'] },
+  { title: 'passenger with me', align: 'left',   lines: ['She sits next to me', 'On the bus, returning home', 'Like a bag, grief sits'] },
+  { title: 'postmidnight',      align: 'center', lines: ['Mile kuch pal hume', 'Baatien hai adhoori ab', 'Magar, raat bit gayi'] },
+  { title: 'gravity',           align: 'left',   lines: ['Despair sits heavy', 'Upon my chest, hands and legs', 'Let me embrace it'] },
+  { title: 'lamentations 3:24', align: 'left',   lines: ['Tender mercy wisps', 'Flutter down daily on wings', 'Anew with the dawn'] },
+  { title: 'worth',             align: 'left',   lines: ['Long winter, brittle', 'Barren and bare, wasted land', 'Hidden fruit growing'] },
+  { title: 'calling out',       align: 'left',   lines: ['Deep in the valley', 'Weary, worn and weak, and stalled', 'Find and meet me here'] },
+];
+
+const PAUSE_PATTERN = [0.9, 1.4, 0.7, 1.2, 1.7, 0.8, 1.1, 0.9, 1.3];
+
+// ─── fragment block ──────────────────────────────────────────────────
+function FragmentBlock({ idx, title, lines, align }) {
+  const justify = align === 'center' ? 'center' : 'flex-start';
+  const textAlign = align === 'center' ? 'center' : 'left';
+  return (
+    <section
+      className="fragment fade-block"
+      data-screen-label={`fragment ${String(idx + 1).padStart(2, '0')} · ${title}`}
+      style={{
+        opacity: 0,
+        transform: 'translateY(14px)',
+        transition: `opacity ${FADE_MS}ms cubic-bezier(0.22,0.61,0.36,1), transform ${FADE_MS}ms cubic-bezier(0.22,0.61,0.36,1)`,
+        padding: '14px 32px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: justify
+      }}>
+      <div style={{
+        fontFamily: SANS, fontWeight: 400, fontSize: 15,
+        color: FG_MUTED, letterSpacing: '0.01em',
+        marginBottom: 56,
+        alignSelf: align === 'center' ? 'center' : 'flex-start'
+      }}>({title})</div>
+
+      <div style={{
+        fontFamily: SERIF, fontWeight: 300, fontSize: 14,
+        lineHeight: 1.55, color: FG_BODY,
+        letterSpacing: '0.01em', textAlign, maxWidth: 480
+      }}>
+        {lines.map((line, i) => <div key={i}>{line}</div>)}
+      </div>
+
+      <div style={{
+        fontFamily: SANS, fontWeight: 400, fontSize: 15,
+        color: FG_MUTED, marginTop: 36,
+        alignSelf: align === 'center' ? 'center' : 'flex-start'
+      }}>(-)</div>
+    </section>
+  );
+}
+
+// ─── pause ───────────────────────────────────────────────────────────
+function Pause({ heightPx }) {
+  return (
+    <div className="pause" style={{
+      height: heightPx,
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}>
+      <div className="fade-block" style={{
+        width: 4, height: 4, borderRadius: 4,
+        background: FG, opacity: 0,
+        transition: `opacity ${FADE_MS}ms cubic-bezier(0.22,0.61,0.36,1)`
+      }} />
+    </div>
+  );
+}
+
+// ─── entry / outro ───────────────────────────────────────────────────
+function EntryScreen({ vh }) {
+  return (
+    <section
+      className="entry"
+      data-screen-label="entry"
+      style={{
+        height: vh,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '0 0 56px', position: 'relative'
+      }}>
+      <div style={{
+        fontFamily: SANS, fontWeight: 300, fontSize: 32,
+        color: FG, letterSpacing: '0.01em', lineHeight: 1,
+        animation: 'parenReveal 2.6s ease-out both, driftBreath 7s ease-in-out infinite 2.6s'
+      }}>
+        (<span style={{ animation: 'momentReveal 2.8s 3s ease-out both' }}>moment</span>)
+      </div>
+
+      <div style={{
+        position: 'absolute', bottom: 56, left: 0, right: 0,
+        textAlign: 'center',
+        fontFamily: MONO, fontWeight: 400, fontSize: 10,
+        color: FG_MUTED, letterSpacing: '0.30em',
+        textTransform: 'lowercase',
+        animation: 'driftHint 4s ease-in-out infinite 6s both'
+      }}>↓ scroll</div>
+    </section>
+  );
+}
+
+function OutroScreen({ vh }) {
+  return (
+    <section
+      className="outro fade-block"
+      data-screen-label="loop"
+      style={{
+        height: vh * 1.2,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        gap: 88, opacity: 0,
+        transition: `opacity ${FADE_MS}ms cubic-bezier(0.22,0.61,0.36,1)`
+      }}>
+      <div style={{
+        fontFamily: MONO, fontWeight: 400, fontSize: 11,
+        color: FG_MUTED, letterSpacing: '0.12em',
+        textTransform: 'lowercase', lineHeight: 1.8,
+        textAlign: 'center'
+      }}>
+        <div>haikus written and designed</div>
+        <div>by pankti porecha.</div>
+        <div>may 2026.</div>
+      </div>
+      <div style={{
+        fontFamily: SANS, fontWeight: 300, fontSize: 32,
+        color: FG, letterSpacing: '0.01em', lineHeight: 1,
+        animation: 'driftBreath 7s ease-in-out infinite'
+      }}>(moment)</div>
+    </section>
+  );
+}
+
+// ─── horizon overlay ─────────────────────────────────────────────────
+const Horizon = React.forwardRef(function Horizon(_, ref) {
+  return (
+    <div ref={ref} className="horizon" style={{
+      position: 'absolute', left: 0, right: 0,
+      top: '50%', height: 1, opacity: 0,
+      transition: 'opacity 900ms cubic-bezier(0.22,0.61,0.36,1), top 600ms cubic-bezier(0.22,0.61,0.36,1)',
+      pointerEvents: 'none', zIndex: 4
+    }}>
+      <div style={{
+        height: 1,
+        background: 'linear-gradient(to right, transparent 0%, rgba(232,230,226,0.10) 14%, rgba(232,230,226,0.34) 50%, rgba(232,230,226,0.10) 86%, transparent 100%)'
+      }} />
+    </div>
+  );
+});
+
+// ─── shells ──────────────────────────────────────────────────────────
+function PhoneShell({ width, height, scrollRef, horizonRef, children }) {
+  return (
+    <div style={{
+      width, height, borderRadius: 48, background: '#000',
+      position: 'relative', overflow: 'hidden', fontFamily: SANS,
+      boxShadow: '0 50px 120px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)'
+    }}>
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0,
+        height: 54, zIndex: 30, pointerEvents: 'none',
+        background: 'linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0))'
+      }} />
+      <div style={{
+        position: 'absolute', top: 18, left: 28, zIndex: 31,
+        fontFamily: '-apple-system, "SF Pro", system-ui',
+        fontWeight: 600, fontSize: 15, color: FG, letterSpacing: '-0.01em'
+      }}>9:41</div>
+      <div style={{
+        position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+        width: 122, height: 35, borderRadius: 24, background: '#000', zIndex: 32
+      }} />
+
+      <div ref={scrollRef} className="moment-scroll" style={{
+        position: 'absolute', inset: 0, background: BG,
+        overflowY: 'auto', overflowX: 'hidden',
+        WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none'
+      }}>
+        {children}
+      </div>
+
+      <Horizon ref={horizonRef} />
+
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        height: 34, display: 'flex', justifyContent: 'center', alignItems: 'flex-end',
+        paddingBottom: 8, pointerEvents: 'none', zIndex: 40
+      }}>
+        <div style={{
+          width: 138, height: 5, borderRadius: 100,
+          background: 'rgba(232,230,226,0.55)'
+        }} />
+      </div>
+    </div>
+  );
+}
+
+function FullBleedShell({ scrollRef, horizonRef, children }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: BG, fontFamily: SANS }}>
+      <div ref={scrollRef} className="moment-scroll" style={{
+        position: 'absolute', inset: 0,
+        overflowY: 'auto', overflowX: 'hidden',
+        WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none'
+      }}>
+        {children}
+      </div>
+      <Horizon ref={horizonRef} />
+    </div>
+  );
+}
+
+// ─── main ────────────────────────────────────────────────────────────
+function MomentApp() {
+  const scrollRef = React.useRef(null);
+  const horizonRef = React.useRef(null);
+  const loopingRef = React.useRef(false);
+
+  const [viewport, setViewport] = React.useState(() => ({
+    w: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    h: typeof window !== 'undefined' ? window.innerHeight : 800
+  }));
+  React.useEffect(() => {
+    const onResize = () => setViewport({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const isMobileViewport = viewport.w < 640;
+  const phoneH = Math.min(820, Math.max(640, viewport.h - 80));
+  const phoneW = Math.round(phoneH * (390 / 844));
+  const vh = isMobileViewport ? viewport.h : phoneH;
+
+  const sequence = React.useMemo(() => {
+    const out = [{ kind: 'entry', key: 'entry' }];
+    FRAGMENTS.forEach((f, i) => {
+      out.push({ kind: 'fragment', key: `f${i}`, idx: i, ...f });
+      out.push({ kind: 'pause', key: `p${i}`, mul: PAUSE_PATTERN[i % PAUSE_PATTERN.length] });
+    });
+    out.push({ kind: 'outro', key: 'outro' });
+    return out;
+  }, []);
+
+  // Fade-in observer.
+  React.useEffect(() => {
+    const host = scrollRef.current;
+    if (!host) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        const el = e.target;
+        if (e.isIntersecting && e.intersectionRatio > 0.15) {
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0)';
+        } else if (!reducedMotion) {
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(14px)';
+        }
+      });
+    }, { root: host, threshold: [0, 0.15, 0.4, 0.7], rootMargin: '0px 0px -10% 0px' });
+    host.querySelectorAll('.fade-block').forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [sequence, isMobileViewport]);
+
+  // Horizon migration + silent loop.
+  React.useEffect(() => {
+    const host = scrollRef.current;
+    const horizon = horizonRef.current;
+    if (!host || !horizon) return;
+
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const hv = host.clientHeight;
+      const fragEls = host.querySelectorAll('.fragment, .outro');
+      const entryEl = host.querySelector('.entry');
+      const parentR = host.getBoundingClientRect();
+
+      let entryDominates = false;
+      if (entryEl) {
+        const r = entryEl.getBoundingClientRect();
+        const top = r.top - parentR.top;
+        const bottom = r.bottom - parentR.top;
+        const visible = Math.max(0, Math.min(hv, bottom) - Math.max(0, top));
+        if (visible > hv * 0.55) entryDominates = true;
+      }
+
+      let best = null, bestVis = 0;
+      fragEls.forEach((f) => {
+        const r = f.getBoundingClientRect();
+        const top = r.top - parentR.top;
+        const bottom = r.bottom - parentR.top;
+        const visible = Math.max(0, Math.min(hv, bottom) - Math.max(0, top));
+        if (visible > bestVis) { bestVis = visible; best = { el: f, top, height: r.height }; }
+      });
+
+      if (entryDominates) {
+        horizon.style.opacity = '0';
+      } else if (best && bestVis > hv * 0.10) {
+        const totalSpan = hv + best.height;
+        const traveled = hv - best.top;
+        const progress = Math.max(0, Math.min(1, traveled / totalSpan));
+        const yPct = 0.18 + progress * 0.64;
+        horizon.style.top = `${yPct * 100}%`;
+        horizon.style.opacity = '0.7';
+      } else {
+        horizon.style.opacity = '0.10';
+      }
+
+      const maxScroll = host.scrollHeight - host.clientHeight;
+      if (maxScroll > 0 && host.scrollTop >= maxScroll - 4 && !loopingRef.current) {
+        loopingRef.current = true;
+        setTimeout(() => {
+          host.scrollTo({ top: 0, behavior: 'auto' });
+          setTimeout(() => { loopingRef.current = false; }, 800);
+        }, 1800);
+      }
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    update();
+    host.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      host.removeEventListener('scroll', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [sequence]);
+
+  const content = (
+    <>
+      {sequence.map((item) => {
+        if (item.kind === 'entry')    return <EntryScreen key={item.key} vh={vh} />;
+        if (item.kind === 'fragment') return (
+          <div key={item.key} style={{
+            paddingTop: vh * 0.18 * PACE.frag,
+            paddingBottom: vh * 0.06 * PACE.frag
+          }}>
+            <FragmentBlock idx={item.idx} title={item.title} lines={item.lines} align={item.align} />
+          </div>
+        );
+        if (item.kind === 'pause')    return <Pause key={item.key} heightPx={vh * item.mul * PACE.pause} />;
+        if (item.kind === 'outro')    return <OutroScreen key={item.key} vh={vh} />;
+        return null;
+      })}
+    </>
+  );
+
+  if (isMobileViewport) {
+    return (
+      <FullBleedShell scrollRef={scrollRef} horizonRef={horizonRef}>
+        {content}
+      </FullBleedShell>
+    );
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: DESK,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: SANS
+    }}>
+      <PhoneShell width={phoneW} height={phoneH} scrollRef={scrollRef} horizonRef={horizonRef}>
+        {content}
+      </PhoneShell>
+    </div>
+  );
+}
+
+// Mount
+const __root = ReactDOM.createRoot(document.getElementById('root'));
+__root.render(<MomentApp />);
