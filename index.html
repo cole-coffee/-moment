@@ -5,16 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>(moment)</title>
 
-  <!-- meta -->
   <meta name="description" content="An ambient haiku reader. Nine fragments, scrolled slowly. By Pankti Porecha." />
   <meta name="theme-color" content="#0E0E0E" />
   <meta name="color-scheme" content="dark" />
   <meta name="author" content="Pankti Porecha" />
 
-  <!-- favicon: simple "( )" mark on dark -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2032%2032'%3E%3Crect%20width%3D'32'%20height%3D'32'%20rx%3D'7'%20fill%3D'%230E0E0E'%2F%3E%3Ctext%20x%3D'16'%20y%3D'22'%20text-anchor%3D'middle'%20font-family%3D'-apple-system%2Csystem-ui%2Csans-serif'%20font-size%3D'18'%20font-weight%3D'300'%20fill%3D'rgba(232%2C230%2C226%2C0.88)'%3E(%20%20)%3C%2Ftext%3E%3C%2Fsvg%3E" />
 
-  <!-- fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600&family=Newsreader:opsz,wght@6..72,200..700&family=DM+Mono:wght@300;400;500&display=swap" />
@@ -35,15 +32,19 @@
 
     @keyframes driftBreath {
       0%, 100% { transform: translateY(0);    opacity: 0.84; }
-      50%      { transform: translateY(-2px); opacity: 1; }
+      50%       { transform: translateY(-2px); opacity: 1; }
     }
     @keyframes driftHint {
       0%, 100% { opacity: 0.40; }
-      50%      { opacity: 0.78; }
+      50%       { opacity: 0.78; }
     }
     @keyframes momentReveal {
       0%   { opacity: 0; filter: blur(2px); }
       100% { opacity: 1; filter: blur(0); }
+    }
+    @keyframes momentExpand {
+      0%   { max-width: 0px; }
+      100% { max-width: 160px; }
     }
     @keyframes parenReveal {
       0%   { opacity: 0; }
@@ -53,7 +54,7 @@
 
     @media (prefers-reduced-motion: reduce) {
       .fade-block { transition: opacity 200ms linear !important; transform: none !important; }
-      .horizon { transition: opacity 200ms linear !important; }
+      .horizon    { transition: opacity 200ms linear !important; }
       [style*="driftBreath"], [style*="driftHint"],
       [style*="momentReveal"], [style*="parenReveal"] { animation: none !important; opacity: 1 !important; }
     }
@@ -66,148 +67,198 @@
 <body>
   <div id="root"></div>
   <script type="text/babel">
-// (moment) — production
-// Mobile-first ambient poetry experience.
-// IntersectionObserver fade-in, horizon migrates 18%→82% with each
-// fragment, generous pause sections between, silent loop through a
-// closing "(moment)" credits screen.
 
-// ─── motion constants (locked) ───────────────────────────────────────
 const FADE_MS = 1400;
 const PACE = { frag: 1.00, pause: 1.00 };
 
-// ─── tokens (from Figma) ─────────────────────────────────────────────
-const BG       = '#0E0E0E';
-const DESK     = '#191614';
-const FG       = 'rgba(232,230,226,0.88)';
-const FG_BODY  = 'rgba(232,230,226,0.92)';
-const FG_MUTED = 'rgba(232,230,226,0.42)';
+// ─── theme palettes ───────────────────────────────────────────────────
+const THEMES = {
+  dark: {
+    BG:       '#0E0E0E',
+    DESK:     '#191614',
+    FG:       'rgba(232,230,226,0.88)',
+    FG_BODY:  'rgba(232,230,226,0.92)',
+    FG_MUTED: 'rgba(232,230,226,0.38)',
+    HORIZON:  'linear-gradient(to right, transparent 0%, rgba(232,230,226,0.10) 14%, rgba(232,230,226,0.34) 50%, rgba(232,230,226,0.10) 86%, transparent 100%)',
+    DOT:      'rgba(232,230,226,0.88)',
+    SHELL_BG: '#000',
+    SHELL_SHADOW: '0 50px 120px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)',
+    HOME_BAR: 'rgba(232,230,226,0.55)',
+    STATUS_FG: 'rgba(232,230,226,0.88)',
+  },
+  light: {
+    BG:       '#F5F2EE',
+    DESK:     '#E8E4DE',
+    FG:       'rgba(28,24,20,0.88)',
+    FG_BODY:  'rgba(28,24,20,0.92)',
+    FG_MUTED: 'rgba(28,24,20,0.38)',
+    HORIZON:  'linear-gradient(to right, transparent 0%, rgba(28,24,20,0.08) 14%, rgba(28,24,20,0.22) 50%, rgba(28,24,20,0.08) 86%, transparent 100%)',
+    DOT:      'rgba(28,24,20,0.88)',
+    SHELL_BG: '#EDE9E3',
+    SHELL_SHADOW: '0 50px 120px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.07)',
+    HOME_BAR: 'rgba(28,24,20,0.30)',
+    STATUS_FG: 'rgba(28,24,20,0.88)',
+  }
+};
 
 const SANS  = "'Manrope', 'Helvetica Neue', Helvetica, system-ui, sans-serif";
 const SERIF = "'Newsreader', 'Iowan Old Style', Georgia, serif";
 const MONO  = "'DM Mono', 'JetBrains Mono', ui-monospace, monospace";
 
-// ─── content ─────────────────────────────────────────────────────────
+const TRANS = 'background 600ms ease, color 600ms ease, opacity 600ms ease';
+
 const FRAGMENTS = [
-  { title: 'babylon',           align: 'left',   lines: ['This is where I am', 'here right now, for such a time', 'Steward and behold'] },
-  { title: 'tantalise',         align: 'left',   lines: ['Spring whiff in the wind', 'lush fruit appetizing; I\u2019m', 'again plunged and pruned.'] },
+  { title: 'babylon',            align: 'left',   lines: ['This is where I am', 'here right now, for such a time', 'Steward and behold'] },
+  { title: 'tantalise',          align: 'left',   lines: ['Spring whiff in the wind', 'lush fruit appetizing; I\u2019m', 'again plunged and pruned.'] },
   { title: 'sheep\u2019s daydreams', align: 'left', lines: ['By the tranquil brook', 'Lush grass freshly consumed,\u2013 sigh,', 'in my shepherd\u2019s lap'] },
-  { title: 'passenger with me', align: 'left',   lines: ['She sits next to me', 'On the bus, returning home', 'Like a bag, grief sits'] },
-  { title: 'postmidnight',      align: 'center', lines: ['Mile kuch pal hume', 'Baatien hai adhoori ab', 'Magar, raat bit gayi'] },
-  { title: 'gravity',           align: 'left',   lines: ['Despair sits heavy', 'Upon my chest, hands and legs', 'Let me embrace it'] },
+  { title: 'passenger with me',  align: 'left',   lines: ['She sits next to me', 'On the bus, returning home', 'Like a bag, grief sits'] },
+  { title: 'postmidnight',       align: 'center', lines: ['Mile kuch pal hume', 'Baatien hai adhoori ab', 'Magar, raat bit gayi'] },
+  { title: 'gravity',            align: 'left',   lines: ['Despair sits heavy', 'Upon my chest, hands and legs', 'Let me embrace it'] },
   { title: 'lamentations 3:24', align: 'left',   lines: ['Tender mercy wisps', 'Flutter down daily on wings', 'Anew with the dawn'] },
-  { title: 'worth',             align: 'left',   lines: ['Long winter, brittle', 'Barren and bare, wasted land', 'Hidden fruit growing'] },
-  { title: 'calling out',       align: 'left',   lines: ['Deep in the valley', 'Weary, worn and weak, and stalled', 'Find and meet me here'] },
+  { title: 'worth',              align: 'left',   lines: ['Long winter, brittle', 'Barren and bare, wasted land', 'Hidden fruit growing'] },
+  { title: 'calling out',        align: 'left',   lines: ['Deep in the valley', 'Weary, worn and weak, and stalled', 'Find and meet me here'] },
 ];
 
 const PAUSE_PATTERN = [0.9, 1.4, 0.7, 1.2, 1.7, 0.8, 1.1, 0.9, 1.3];
 
-// ─── fragment block ──────────────────────────────────────────────────
-function FragmentBlock({ idx, title, lines, align }) {
-  const justify = align === 'center' ? 'center' : 'flex-start';
+// ─── fragment ─────────────────────────────────────────────────────────
+function FragmentBlock({ idx, title, lines, align, theme }) {
+  const T = THEMES[theme];
+  const justify   = align === 'center' ? 'center' : 'flex-start';
   const textAlign = align === 'center' ? 'center' : 'left';
   return (
     <section
       className="fragment fade-block"
       data-screen-label={`fragment ${String(idx + 1).padStart(2, '0')} · ${title}`}
       style={{
-        opacity: 0,
-        transform: 'translateY(14px)',
+        opacity: 0, transform: 'translateY(14px)',
         transition: `opacity ${FADE_MS}ms cubic-bezier(0.22,0.61,0.36,1), transform ${FADE_MS}ms cubic-bezier(0.22,0.61,0.36,1)`,
-        padding: '14px 32px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: justify
+        padding: '14px 32px', display: 'flex', flexDirection: 'column', alignItems: justify
       }}>
       <div style={{
         fontFamily: SANS, fontWeight: 400, fontSize: 15,
-        color: FG_MUTED, letterSpacing: '0.01em',
-        marginBottom: 56,
-        alignSelf: align === 'center' ? 'center' : 'flex-start'
+        color: T.FG_MUTED, letterSpacing: '0.01em', marginBottom: 56,
+        alignSelf: align === 'center' ? 'center' : 'flex-start',
+        transition: TRANS
       }}>({title})</div>
 
       <div style={{
-        fontFamily: SERIF, fontWeight: 300, fontSize: 24,
-        lineHeight: 1.7, color: FG_BODY,
-        letterSpacing: '0.01em', textAlign, maxWidth: 480
+        fontFamily: SERIF, fontWeight: 300, fontSize: 42,
+        lineHeight: 1.7, color: T.FG_BODY,
+        letterSpacing: '0.01em', textAlign, maxWidth: 480,
+        transition: TRANS
       }}>
         {lines.map((line, i) => <div key={i}>{line}</div>)}
       </div>
 
       <div style={{
         fontFamily: SANS, fontWeight: 400, fontSize: 15,
-        color: FG_MUTED, marginTop: 36,
-        alignSelf: align === 'center' ? 'center' : 'flex-start'
+        color: T.FG_MUTED, marginTop: 36,
+        alignSelf: align === 'center' ? 'center' : 'flex-start',
+        transition: TRANS
       }}>(-)</div>
     </section>
   );
 }
 
-// ─── pause ───────────────────────────────────────────────────────────
-function Pause({ heightPx }) {
+// ─── pause dot ────────────────────────────────────────────────────────
+function Pause({ heightPx, theme }) {
+  const T = THEMES[theme];
   return (
-    <div className="pause" style={{
-      height: heightPx,
-      display: 'flex', alignItems: 'center', justifyContent: 'center'
-    }}>
+    <div className="pause" style={{ height: heightPx, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div className="fade-block" style={{
         width: 4, height: 4, borderRadius: 4,
-        background: FG, opacity: 0,
-        transition: `opacity ${FADE_MS}ms cubic-bezier(0.22,0.61,0.36,1)`
+        background: T.DOT, opacity: 0,
+        transition: `opacity ${FADE_MS}ms cubic-bezier(0.22,0.61,0.36,1), background 600ms ease`
       }} />
     </div>
   );
 }
 
-// ─── entry / outro ───────────────────────────────────────────────────
-function EntryScreen({ vh }) {
+// ─── toggle ───────────────────────────────────────────────────────────
+function ThemeToggle({ theme, onToggle }) {
+  const T = THEMES[theme];
+  return (
+    <button
+      onClick={onToggle}
+      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      style={{
+        background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0',
+        fontFamily: MONO, fontWeight: 400, fontSize: 10,
+        color: T.FG_MUTED, letterSpacing: '0.20em',
+        textTransform: 'lowercase', transition: 'color 600ms ease, opacity 400ms ease',
+        opacity: 0.8,
+        animation: 'driftHint 4s ease-in-out infinite 8s both'
+      }}>
+      {theme === 'dark' ? '○ light' : '● dark'}
+    </button>
+  );
+}
+
+// ─── entry ────────────────────────────────────────────────────────────
+function EntryScreen({ vh, theme, onToggle }) {
+  const T = THEMES[theme];
   return (
     <section
       className="entry"
       data-screen-label="entry"
       style={{
-        height: vh,
-        display: 'flex', flexDirection: 'column',
+        height: vh, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         padding: '0 0 56px', position: 'relative'
       }}>
       <div style={{
         fontFamily: SANS, fontWeight: 300, fontSize: 32,
-        color: FG, letterSpacing: '0.01em', lineHeight: 1,
-        animation: 'parenReveal 2.6s ease-out both, driftBreath 7s ease-in-out infinite 2.6s'
+        color: T.FG, letterSpacing: '0.01em', lineHeight: 1,
+        animation: 'parenReveal 2.6s ease-out both, driftBreath 7s ease-in-out infinite 2.6s',
+        transition: 'color 600ms ease',
+        display: 'flex', alignItems: 'center'
       }}>
-        (<span style={{ animation: 'momentReveal 2.8s 3s ease-out both' }}>moment</span>)
+        <span>(</span>
+        <span style={{
+          display: 'inline-block', overflow: 'hidden', verticalAlign: 'middle',
+          animation: 'momentExpand 1400ms cubic-bezier(0.22,0.61,0.36,1) 2.8s both'
+        }}>
+          <span style={{ display: 'inline-block', padding: '0 1px', animation: 'momentReveal 1200ms ease 3.1s both' }}>moment</span>
+        </span>
+        <span>)</span>
       </div>
 
+      {/* bottom row: scroll hint left, toggle right — centred together */}
       <div style={{
         position: 'absolute', bottom: 56, left: 0, right: 0,
-        textAlign: 'center',
-        fontFamily: MONO, fontWeight: 400, fontSize: 10,
-        color: FG_MUTED, letterSpacing: '0.30em',
-        textTransform: 'lowercase',
-        animation: 'driftHint 4s ease-in-out infinite 6s both'
-      }}>↓ scroll</div>
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14
+      }}>
+        <ThemeToggle theme={theme} onToggle={onToggle} />
+        <div style={{
+          fontFamily: MONO, fontWeight: 400, fontSize: 10,
+          color: T.FG_MUTED, letterSpacing: '0.30em',
+          textTransform: 'lowercase', transition: 'color 600ms ease',
+          animation: 'driftHint 4s ease-in-out infinite 6s both'
+        }}>↓ scroll</div>
+      </div>
     </section>
   );
 }
 
-function OutroScreen({ vh }) {
+// ─── outro ────────────────────────────────────────────────────────────
+function OutroScreen({ vh, theme }) {
+  const T = THEMES[theme];
   return (
     <section
       className="outro fade-block"
       data-screen-label="loop"
       style={{
-        height: vh * 1.2,
-        display: 'flex', flexDirection: 'column',
+        height: vh * 1.2, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         gap: 88, opacity: 0,
         transition: `opacity ${FADE_MS}ms cubic-bezier(0.22,0.61,0.36,1)`
       }}>
       <div style={{
         fontFamily: MONO, fontWeight: 400, fontSize: 11,
-        color: FG_MUTED, letterSpacing: '0.12em',
+        color: T.FG_MUTED, letterSpacing: '0.12em',
         textTransform: 'lowercase', lineHeight: 1.8,
-        textAlign: 'center'
+        textAlign: 'center', transition: TRANS
       }}>
         <div>haikus written and designed</div>
         <div>by pankti porecha.</div>
@@ -215,15 +266,17 @@ function OutroScreen({ vh }) {
       </div>
       <div style={{
         fontFamily: SANS, fontWeight: 300, fontSize: 32,
-        color: FG, letterSpacing: '0.01em', lineHeight: 1,
-        animation: 'driftBreath 7s ease-in-out infinite'
+        color: T.FG, letterSpacing: '0.01em', lineHeight: 1,
+        animation: 'driftBreath 7s ease-in-out infinite',
+        transition: 'color 600ms ease'
       }}>(moment)</div>
     </section>
   );
 }
 
-// ─── horizon overlay ─────────────────────────────────────────────────
-const Horizon = React.forwardRef(function Horizon(_, ref) {
+// ─── horizon ─────────────────────────────────────────────────────────
+const Horizon = React.forwardRef(function Horizon({ theme }, ref) {
+  const T = THEMES[theme];
   return (
     <div ref={ref} className="horizon" style={{
       position: 'absolute', left: 0, right: 0,
@@ -231,46 +284,50 @@ const Horizon = React.forwardRef(function Horizon(_, ref) {
       transition: 'opacity 900ms cubic-bezier(0.22,0.61,0.36,1), top 600ms cubic-bezier(0.22,0.61,0.36,1)',
       pointerEvents: 'none', zIndex: 4
     }}>
-      <div style={{
-        height: 1,
-        background: 'linear-gradient(to right, transparent 0%, rgba(232,230,226,0.10) 14%, rgba(232,230,226,0.34) 50%, rgba(232,230,226,0.10) 86%, transparent 100%)'
-      }} />
+      <div style={{ height: 1, background: T.HORIZON, transition: 'background 600ms ease' }} />
     </div>
   );
 });
 
-// ─── shells ──────────────────────────────────────────────────────────
-function PhoneShell({ width, height, scrollRef, horizonRef, children }) {
+// ─── shells ───────────────────────────────────────────────────────────
+function PhoneShell({ width, height, scrollRef, horizonRef, theme, children }) {
+  const T = THEMES[theme];
   return (
     <div style={{
-      width, height, borderRadius: 48, background: '#000',
+      width, height, borderRadius: 48, background: T.SHELL_BG,
       position: 'relative', overflow: 'hidden', fontFamily: SANS,
-      boxShadow: '0 50px 120px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)'
+      boxShadow: T.SHELL_SHADOW, transition: 'background 600ms ease, box-shadow 600ms ease'
     }}>
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0,
         height: 54, zIndex: 30, pointerEvents: 'none',
-        background: 'linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0))'
+        background: theme === 'dark'
+          ? 'linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0))'
+          : 'linear-gradient(to bottom, rgba(237,233,227,0.7), rgba(237,233,227,0))',
+        transition: 'background 600ms ease'
       }} />
       <div style={{
         position: 'absolute', top: 18, left: 28, zIndex: 31,
         fontFamily: '-apple-system, "SF Pro", system-ui',
-        fontWeight: 600, fontSize: 15, color: FG, letterSpacing: '-0.01em'
+        fontWeight: 600, fontSize: 15, color: T.STATUS_FG,
+        letterSpacing: '-0.01em', transition: 'color 600ms ease'
       }}>9:41</div>
       <div style={{
         position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
-        width: 122, height: 35, borderRadius: 24, background: '#000', zIndex: 32
+        width: 122, height: 35, borderRadius: 24, background: T.SHELL_BG, zIndex: 32,
+        transition: 'background 600ms ease'
       }} />
 
       <div ref={scrollRef} className="moment-scroll" style={{
-        position: 'absolute', inset: 0, background: BG,
+        position: 'absolute', inset: 0, background: T.BG,
         overflowY: 'auto', overflowX: 'hidden',
-        WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none'
+        WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none',
+        transition: 'background 600ms ease'
       }}>
         {children}
       </div>
 
-      <Horizon ref={horizonRef} />
+      <Horizon ref={horizonRef} theme={theme} />
 
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -279,16 +336,20 @@ function PhoneShell({ width, height, scrollRef, horizonRef, children }) {
       }}>
         <div style={{
           width: 138, height: 5, borderRadius: 100,
-          background: 'rgba(232,230,226,0.55)'
+          background: T.HOME_BAR, transition: 'background 600ms ease'
         }} />
       </div>
     </div>
   );
 }
 
-function FullBleedShell({ scrollRef, horizonRef, children }) {
+function FullBleedShell({ scrollRef, horizonRef, theme, children }) {
+  const T = THEMES[theme];
   return (
-    <div style={{ position: 'fixed', inset: 0, background: BG, fontFamily: SANS }}>
+    <div style={{
+      position: 'fixed', inset: 0, background: T.BG, fontFamily: SANS,
+      transition: 'background 600ms ease'
+    }}>
       <div ref={scrollRef} className="moment-scroll" style={{
         position: 'absolute', inset: 0,
         overflowY: 'auto', overflowX: 'hidden',
@@ -296,19 +357,24 @@ function FullBleedShell({ scrollRef, horizonRef, children }) {
       }}>
         {children}
       </div>
-      <Horizon ref={horizonRef} />
+      <Horizon ref={horizonRef} theme={theme} />
     </div>
   );
 }
 
-// ─── main ────────────────────────────────────────────────────────────
+// ─── main ─────────────────────────────────────────────────────────────
 function MomentApp() {
-  const scrollRef = React.useRef(null);
+  const scrollRef  = React.useRef(null);
   const horizonRef = React.useRef(null);
   const loopingRef = React.useRef(false);
 
+  const [theme, setTheme] = React.useState('dark');
+  const toggleTheme = React.useCallback(() => {
+    setTheme(t => t === 'dark' ? 'light' : 'dark');
+  }, []);
+
   const [viewport, setViewport] = React.useState(() => ({
-    w: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    w: typeof window !== 'undefined' ? window.innerWidth  : 1024,
     h: typeof window !== 'undefined' ? window.innerHeight : 800
   }));
   React.useEffect(() => {
@@ -317,33 +383,33 @@ function MomentApp() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const isMobileViewport = viewport.w < 640;
+  const isMobile = viewport.w < 640;
   const phoneH = Math.min(820, Math.max(640, viewport.h - 80));
   const phoneW = Math.round(phoneH * (390 / 844));
-  const vh = isMobileViewport ? viewport.h : phoneH;
+  const vh     = isMobile ? viewport.h : phoneH;
 
   const sequence = React.useMemo(() => {
     const out = [{ kind: 'entry', key: 'entry' }];
     FRAGMENTS.forEach((f, i) => {
       out.push({ kind: 'fragment', key: `f${i}`, idx: i, ...f });
-      out.push({ kind: 'pause', key: `p${i}`, mul: PAUSE_PATTERN[i % PAUSE_PATTERN.length] });
+      out.push({ kind: 'pause',    key: `p${i}`, mul: PAUSE_PATTERN[i % PAUSE_PATTERN.length] });
     });
     out.push({ kind: 'outro', key: 'outro' });
     return out;
   }, []);
 
-  // Fade-in observer.
+  // Fade-in observer
   React.useEffect(() => {
     const host = scrollRef.current;
     if (!host) return;
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const io = new IntersectionObserver((entries) => {
       entries.forEach((e) => {
         const el = e.target;
         if (e.isIntersecting && e.intersectionRatio > 0.15) {
           el.style.opacity = '1';
           el.style.transform = 'translateY(0)';
-        } else if (!reducedMotion) {
+        } else if (!reduced) {
           el.style.opacity = '0';
           el.style.transform = 'translateY(14px)';
         }
@@ -351,18 +417,17 @@ function MomentApp() {
     }, { root: host, threshold: [0, 0.15, 0.4, 0.7], rootMargin: '0px 0px -10% 0px' });
     host.querySelectorAll('.fade-block').forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, [sequence, isMobileViewport]);
+  }, [sequence, isMobile]);
 
-  // Horizon migration + silent loop.
+  // Horizon + silent loop
   React.useEffect(() => {
-    const host = scrollRef.current;
+    const host    = scrollRef.current;
     const horizon = horizonRef.current;
     if (!host || !horizon) return;
-
     let raf = 0;
     const update = () => {
       raf = 0;
-      const hv = host.clientHeight;
+      const hv      = host.clientHeight;
       const fragEls = host.querySelectorAll('.fragment, .outro');
       const entryEl = host.querySelector('.entry');
       const parentR = host.getBoundingClientRect();
@@ -370,9 +435,7 @@ function MomentApp() {
       let entryDominates = false;
       if (entryEl) {
         const r = entryEl.getBoundingClientRect();
-        const top = r.top - parentR.top;
-        const bottom = r.bottom - parentR.top;
-        const visible = Math.max(0, Math.min(hv, bottom) - Math.max(0, top));
+        const visible = Math.max(0, Math.min(hv, r.bottom - parentR.top) - Math.max(0, r.top - parentR.top));
         if (visible > hv * 0.55) entryDominates = true;
       }
 
@@ -380,19 +443,15 @@ function MomentApp() {
       fragEls.forEach((f) => {
         const r = f.getBoundingClientRect();
         const top = r.top - parentR.top;
-        const bottom = r.bottom - parentR.top;
-        const visible = Math.max(0, Math.min(hv, bottom) - Math.max(0, top));
-        if (visible > bestVis) { bestVis = visible; best = { el: f, top, height: r.height }; }
+        const visible = Math.max(0, Math.min(hv, r.bottom - parentR.top) - Math.max(0, top));
+        if (visible > bestVis) { bestVis = visible; best = { top, height: r.height }; }
       });
 
       if (entryDominates) {
         horizon.style.opacity = '0';
       } else if (best && bestVis > hv * 0.10) {
-        const totalSpan = hv + best.height;
-        const traveled = hv - best.top;
-        const progress = Math.max(0, Math.min(1, traveled / totalSpan));
-        const yPct = 0.18 + progress * 0.64;
-        horizon.style.top = `${yPct * 100}%`;
+        const progress = Math.max(0, Math.min(1, (hv - best.top) / (hv + best.height)));
+        horizon.style.top     = `${(0.18 + progress * 0.64) * 100}%`;
         horizon.style.opacity = '0.7';
       } else {
         horizon.style.opacity = '0.10';
@@ -416,28 +475,27 @@ function MomentApp() {
     };
   }, [sequence]);
 
+  const T = THEMES[theme];
+
   const content = (
     <>
       {sequence.map((item) => {
-        if (item.kind === 'entry')    return <EntryScreen key={item.key} vh={vh} />;
+        if (item.kind === 'entry')    return <EntryScreen key={item.key} vh={vh} theme={theme} onToggle={toggleTheme} />;
         if (item.kind === 'fragment') return (
-          <div key={item.key} style={{
-            paddingTop: vh * 0.18 * PACE.frag,
-            paddingBottom: vh * 0.06 * PACE.frag
-          }}>
-            <FragmentBlock idx={item.idx} title={item.title} lines={item.lines} align={item.align} />
+          <div key={item.key} style={{ paddingTop: vh * 0.18 * PACE.frag, paddingBottom: vh * 0.06 * PACE.frag }}>
+            <FragmentBlock idx={item.idx} title={item.title} lines={item.lines} align={item.align} theme={theme} />
           </div>
         );
-        if (item.kind === 'pause')    return <Pause key={item.key} heightPx={vh * item.mul * PACE.pause} />;
-        if (item.kind === 'outro')    return <OutroScreen key={item.key} vh={vh} />;
+        if (item.kind === 'pause') return <Pause key={item.key} heightPx={vh * item.mul * PACE.pause} theme={theme} />;
+        if (item.kind === 'outro') return <OutroScreen key={item.key} vh={vh} theme={theme} />;
         return null;
       })}
     </>
   );
 
-  if (isMobileViewport) {
+  if (isMobile) {
     return (
-      <FullBleedShell scrollRef={scrollRef} horizonRef={horizonRef}>
+      <FullBleedShell scrollRef={scrollRef} horizonRef={horizonRef} theme={theme}>
         {content}
       </FullBleedShell>
     );
@@ -445,18 +503,17 @@ function MomentApp() {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: DESK,
+      position: 'fixed', inset: 0, background: T.DESK,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: SANS
+      fontFamily: SANS, transition: 'background 600ms ease'
     }}>
-      <PhoneShell width={phoneW} height={phoneH} scrollRef={scrollRef} horizonRef={horizonRef}>
+      <PhoneShell width={phoneW} height={phoneH} scrollRef={scrollRef} horizonRef={horizonRef} theme={theme}>
         {content}
       </PhoneShell>
     </div>
   );
 }
 
-// Mount
 const __root = ReactDOM.createRoot(document.getElementById('root'));
 __root.render(<MomentApp />);
   </script>
